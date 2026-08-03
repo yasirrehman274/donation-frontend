@@ -12,6 +12,7 @@ import Loans from './pages/Loans';
 import Repayments from './pages/Repayments';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import Surplus from './pages/Surplus';
 
 const PAGE_TITLES = {
   dashboard: 'Dashboard', donations: 'Manage Donations', donors: 'Donors List',
@@ -21,7 +22,7 @@ const PAGE_TITLES = {
 
 const PAGES = {
   dashboard: Dashboard, donations: Donations, donors: Donors, expenses: Expenses,
-  loans: Loans, repayments: Repayments, reports: Reports, settings: Settings,
+  loans: Loans, repayments: Repayments, reports: Reports, settings: Settings, surplus: Surplus,
 };
 
 function AppContent() {

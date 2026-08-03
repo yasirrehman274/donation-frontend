@@ -7,8 +7,8 @@ import StatCard from '../components/ui/StatCard';
 
 export default function Dashboard() {
   const {
-    donations, expenses, loans, repayments,
-    getTotalDonations, getTotalExpenses, getActiveLoansTotal, getCurrentBalance,
+    donations, expenses, loans, repayments, surplus,
+    getTotalDonations, getTotalExpenses, getActiveLoansTotal, getCurrentBalance, getTotalSurplus,
   } = useData();
 
   const recentDonations = [...donations].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
@@ -21,13 +21,15 @@ export default function Dashboard() {
     const exp = expenses.filter((e) => inMonth(e.date)).reduce((s, e) => s + Number(e.amount), 0);
     const loan = loans.filter((l) => inMonth(l.date)).reduce((s, l) => s + Number(l.amount), 0);
     const repaid = repayments.filter((r) => inMonth(r.date)).reduce((s, r) => s + Number(r.amount), 0);
-    return { don, exp, loan, repaid, balance: don - exp - loan + repaid };
+    const sur = surplus.filter((s) => inMonth(s.date)).reduce((s2, s) => s2 + Number(s.amount), 0);
+    return { don, exp, loan, repaid, sur, balance: don - exp - loan + repaid + sur };
   };
 
   const stats = [
     { title: 'Total Donations', value: getTotalDonations(), color: 'blue', icon: 'fa-donate' },
     { title: 'Total Expenses', value: getTotalExpenses(), color: 'red', icon: 'fa-money-bill-wave' },
     { title: 'Active Loans', value: getActiveLoansTotal(), color: 'orange', icon: 'fa-handshake' },
+    { title: 'Total Surplus', value: getTotalSurplus(), color: 'green', icon: 'fa-piggy-bank' },
     { title: 'Current Balance', value: getCurrentBalance(), color: 'green', icon: 'fa-wallet' },
   ];
 
@@ -85,11 +87,11 @@ export default function Dashboard() {
         <CardHeader icon="fa-calendar-alt" title={`Monthly Summary (${year})`} />
         <CardBody>
           <Table>
-            <Thead columns={['Month', 'Donations', 'Expenses', 'Loans Given', 'Loan Repaid', 'Balance']} />
+            <Thead columns={['Month', 'Donations', 'Expenses', 'Loans Given', 'Loan Repaid', 'Surplus', 'Balance']} />
             <tbody>
               {MONTH_NAMES.map((month, m) => {
                 const d = getMonthlyData(m);
-                if (!d.don && !d.exp && !d.loan && !d.repaid) return null;
+                if (!d.don && !d.exp && !d.loan && !d.repaid && !d.sur) return null;
                 return (
                   <Tr key={m}>
                     <Td className="font-semibold">{month}</Td>
@@ -97,6 +99,7 @@ export default function Dashboard() {
                     <Td className="amount-negative">{formatPKR(d.exp)}</Td>
                     <Td>{formatPKR(d.loan)}</Td>
                     <Td className="amount-positive">{formatPKR(d.repaid)}</Td>
+                    <Td className="amount-positive">{formatPKR(d.sur)}</Td>
                     <Td className={d.balance >= 0 ? 'amount-positive' : 'amount-negative'}>{formatPKR(d.balance)}</Td>
                   </Tr>
                 );

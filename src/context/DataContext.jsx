@@ -3,6 +3,7 @@ import { donationApi } from '../api/donationApi';
 import { expenseApi } from '../api/expenseApi';
 import { loanApi } from '../api/loanApi';
 import { repaymentApi } from '../api/repaymentApi';
+import { surplusApi } from '../api/surplusApi';
 import { useNotification } from '../hooks/useNotification';
 import { generateId } from '../utils/helpers';
 
@@ -14,6 +15,7 @@ export const DataProvider = ({ children }) => {
   const [expenses, setExpenses] = useState([]);
   const [loans, setLoans] = useState([]);
   const [repayments, setRepayments] = useState([]);
+  const [surplus, setSurplus] = useState([]);
   const [loading, setLoading] = useState(true);
   const { notification, showNotification } = useNotification();
 
@@ -21,16 +23,18 @@ export const DataProvider = ({ children }) => {
   const fetchAllData = useCallback(async () => {
     try {
       setLoading(true);
-      const [don, exp, loan, rep] = await Promise.all([
+      const [don, exp, loan, rep, sur] = await Promise.all([
         donationApi.getAll(),
         expenseApi.getAll(),
         loanApi.getAll(),
         repaymentApi.getAll(),
+        surplusApi.getAll(),
       ]);
       setDonations(don || []);
       setExpenses(exp || []);
       setLoans(loan || []);
       setRepayments(rep || []);
+      setSurplus(sur || []);
     } catch (err) {
       showNotification('Failed to load data. Is JSON server running?', 'error');
       console.error(err);
@@ -165,6 +169,38 @@ export const DataProvider = ({ children }) => {
     }
   };
 
+  // ===== SURPLUS (Monthly Bank Profit) =====
+  const addSurplus = async (entry) => {
+    try {
+      const newEntry = { ...entry, id: generateId(), createdAt: new Date().toISOString() };
+      const saved = await surplusApi.create(newEntry);
+      setSurplus((prev) => [...prev, saved]);
+      showNotification('Surplus recorded successfully!', 'success');
+    } catch {
+      showNotification('Failed to save surplus!', 'error');
+    }
+  };
+
+  const updateSurplus = async (id, updated) => {
+    try {
+      const saved = await surplusApi.update(id, { ...updated, id });
+      setSurplus((prev) => prev.map((s) => (s.id === id ? saved : s)));
+      showNotification('Surplus updated successfully!', 'success');
+    } catch {
+      showNotification('Failed to update surplus!', 'error');
+    }
+  };
+
+  const deleteSurplus = async (id) => {
+    try {
+      await surplusApi.delete(id);
+      setSurplus((prev) => prev.filter((s) => s.id !== id));
+      showNotification('Surplus entry deleted!', 'info');
+    } catch {
+      showNotification('Failed to delete surplus!', 'error');
+    }
+  };
+
   // ===== CALCULATIONS =====
   const getLoanTotalRepaid = (loanId) =>
     repayments.filter((r) => r.loanId === loanId).reduce((s, r) => s + Number(r.amount), 0);
@@ -173,6 +209,7 @@ export const DataProvider = ({ children }) => {
   const getTotalExpenses = () => expenses.reduce((s, e) => s + Number(e.amount), 0);
   const getTotalLoansGiven = () => loans.reduce((s, l) => s + Number(l.amount), 0);
   const getTotalRepayments = () => repayments.reduce((s, r) => s + Number(r.amount), 0);
+  const getTotalSurplus = () => surplus.reduce((s, x) => s + Number(x.amount), 0);
 
   const getActiveLoansTotal = () =>
     loans.reduce((total, loan) => {
@@ -181,16 +218,18 @@ export const DataProvider = ({ children }) => {
     }, 0);
 
   const getCurrentBalance = () =>
-    getTotalDonations() - getTotalExpenses() - getTotalLoansGiven() + getTotalRepayments();
+    getTotalDonations() - getTotalExpenses() - getTotalLoansGiven() + getTotalRepayments() + getTotalSurplus();
 
   const value = {
-    donations, expenses, loans, repayments, loading,
+    donations, expenses, loans, repayments, surplus, loading,
     addDonation, updateDonation, deleteDonation,
     addExpense, updateExpense, deleteExpense,
     addLoan, updateLoan, deleteLoan,
     addRepayment, deleteRepayment,
+    addSurplus, updateSurplus, deleteSurplus,
     getLoanTotalRepaid, getTotalDonations, getTotalExpenses,
-    getTotalLoansGiven, getTotalRepayments, getActiveLoansTotal, getCurrentBalance,
+    getTotalLoansGiven, getTotalRepayments, getTotalSurplus,
+    getActiveLoansTotal, getCurrentBalance,
     notification, showNotification, fetchAllData,
   };
 

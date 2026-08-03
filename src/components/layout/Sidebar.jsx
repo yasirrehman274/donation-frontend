@@ -3,12 +3,14 @@ import React from 'react';
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Dashboard', icon: 'fa-tachometer-alt' },
   { key: 'donations', label: 'Donations', icon: 'fa-donate' },
+  { key: 'surplus', label: 'Surplus', icon: 'fa-coins' },
   { key: 'donors', label: 'Donors', icon: 'fa-users' },
   { key: 'expenses', label: 'Expenses', icon: 'fa-money-bill-wave' },
   { key: 'loans', label: 'Loans', icon: 'fa-handshake' },
   { key: 'repayments', label: 'Loan Repayments', icon: 'fa-undo' },
   { key: 'reports', label: 'Reports', icon: 'fa-chart-bar' },
   { key: 'settings', label: 'Settings', icon: 'fa-cog' },
+  
 ];
 
 export default function Sidebar({ currentPage, setCurrentPage, sidebarOpen, setSidebarOpen }) {
