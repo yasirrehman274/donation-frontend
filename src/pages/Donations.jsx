@@ -5,18 +5,30 @@ import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import { Table, Thead, Td, Tr, EmptyRow } from '../components/ui/Table';
 import Button from '../components/ui/Button';
 import Input, { Textarea } from '../components/ui/Input';
+import Select from '../components/ui/Select';
 import Modal from '../components/ui/Modal';
 import Badge from '../components/ui/Badge';
 
 const emptyForm = { donorName: '', phone: '', amount: '', date: getTodayDate(), notes: '' };
 
 export default function Donations() {
-  const { donations, addDonation, updateDonation, deleteDonation, showNotification } = useData();
+  const { donations, donors, addDonation, updateDonation, deleteDonation, showNotification } = useData();
   const [form, setForm] = useState(emptyForm);
   const [editData, setEditData] = useState(null);
   const [filter, setFilter] = useState({ from: '', to: '', donor: '' });
 
+  const donorOptions = [...new Set([
+    ...donors.map((d) => (d.name || d.donorName || '').trim()).filter(Boolean),
+    ...donations.map((d) => (d.donorName || '').trim()).filter(Boolean),
+  ])].sort((a, b) => a.localeCompare(b));
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleDonorChange = (e) => {
+    const donorName = e.target.value;
+    const selectedDonor = donors.find((d) => (d.name || d.donorName || '').toLowerCase() === donorName.toLowerCase());
+    setForm({ ...form, donorName, phone: selectedDonor?.phone || '' });
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -48,11 +60,15 @@ export default function Donations() {
         <CardHeader icon="fa-plus-circle" title="Add New Donation" />
         <CardBody>
           <form onSubmit={handleSubmit} className="grid gap-4 grid-cols-1 md:grid-cols-2">
-            <Input label="Donor Name *" name="donorName" value={form.donorName} onChange={handleChange} placeholder="Enter donor name" />
-            <Input label="Phone Number" name="phone" value={form.phone} onChange={handleChange} placeholder="Enter phone" />
+            <Select label="Donor Name *" name="donorName" value={form.donorName} onChange={handleDonorChange}>
+              <option value="">-- Select donor --</option>
+              {donorOptions.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </Select>
             <Input label="Amount (PKR) *" type="number" name="amount" value={form.amount} onChange={handleChange} placeholder="Enter amount" min="1" />
             <Input label="Date *" type="date" name="date" value={form.date} onChange={handleChange} />
-            <div className="md:col-span-2">
+            <div>
               <Textarea label="Notes" name="notes" value={form.notes} onChange={handleChange} rows="2" placeholder="Notes..." />
             </div>
             <div className="md:col-span-2">
@@ -113,7 +129,12 @@ export default function Donations() {
       <Modal title="Edit Donation" isOpen={!!editData} onClose={() => setEditData(null)}>
         {editData && (
           <>
-            <Input label="Donor Name *" value={editData.donorName} onChange={(e) => setEditData({ ...editData, donorName: e.target.value })} />
+            <Select label="Donor Name *" value={editData.donorName} onChange={(e) => setEditData({ ...editData, donorName: e.target.value })}>
+              <option value="">-- Select donor --</option>
+              {donorOptions.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </Select>
             <Input label="Phone" value={editData.phone || ''} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
             <Input label="Amount (PKR) *" type="number" value={editData.amount} onChange={(e) => setEditData({ ...editData, amount: e.target.value })} min="1" />
             <Input label="Date *" type="date" value={editData.date} onChange={(e) => setEditData({ ...editData, date: e.target.value })} />

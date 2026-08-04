@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { donationApi } from '../api/donationApi';
+import { donorApi } from '../api/donarAPI';
 import { expenseApi } from '../api/expenseApi';
 import { loanApi } from '../api/loanApi';
 import { repaymentApi } from '../api/repaymentApi';
@@ -12,6 +13,7 @@ export const useData = () => useContext(DataContext);
 
 export const DataProvider = ({ children }) => {
   const [donations, setDonations] = useState([]);
+  const [donors, setDonors] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [loans, setLoans] = useState([]);
   const [repayments, setRepayments] = useState([]);
@@ -23,14 +25,16 @@ export const DataProvider = ({ children }) => {
   const fetchAllData = useCallback(async () => {
     try {
       setLoading(true);
-      const [don, exp, loan, rep, sur] = await Promise.all([
+      const [don, donorList, exp, loan, rep, sur] = await Promise.all([
         donationApi.getAll(),
+        donorApi.getAll(),
         expenseApi.getAll(),
         loanApi.getAll(),
         repaymentApi.getAll(),
         surplusApi.getAll(),
       ]);
       setDonations(don || []);
+      setDonors(donorList || []);
       setExpenses(exp || []);
       setLoans(loan || []);
       setRepayments(rep || []);
@@ -50,7 +54,23 @@ export const DataProvider = ({ children }) => {
   // ===== DONATIONS =====
   const addDonation = async (donation) => {
     try {
-      const newDonation = { ...donation, id: generateId(), createdAt: new Date().toISOString() };
+      const donorName = (donation.donorName || '').trim();
+      const donorPhone = (donation.phone || '').trim();
+      const donorExists = donors.some((d) => (d.name || d.donorName || '').trim().toLowerCase() === donorName.toLowerCase());
+
+      if (donorName && !donorExists) {
+        const donorPayload = { name: donorName, phone: donorPhone, id: generateId(), createdAt: new Date().toISOString() };
+        const savedDonor = await donorApi.create(donorPayload);
+        setDonors((prev) => [...prev, savedDonor]);
+      }
+
+      const newDonation = {
+        ...donation,
+        donorName,
+        phone: donorPhone,
+        id: generateId(),
+        createdAt: new Date().toISOString(),
+      };
       const saved = await donationApi.create(newDonation);
       setDonations((prev) => [...prev, saved]);
       showNotification('Donation saved successfully!', 'success');
@@ -76,6 +96,63 @@ export const DataProvider = ({ children }) => {
       showNotification('Donation deleted!', 'info');
     } catch {
       showNotification('Failed to delete donation!', 'error');
+    }
+  };
+
+  const addDonor = async (donor) => {
+    try {
+      const newDonor = { ...donor, id: generateId(), createdAt: new Date().toISOString() };
+      const saved = await donorApi.create(newDonor);
+      setDonors((prev) => [...prev, saved]);
+      showNotification('Donor added successfully!', 'success');
+      return saved;
+    } catch {
+      showNotification('Failed to add donor!', 'error');
+      return null;
+    }
+  };
+
+  const updateDonor = async (id, updated) => {
+    try {
+      const currentDonor = donors.find((d) => d.id === id);
+      if (!currentDonor) throw new Error('Donor not found');
+
+      const previousName = (currentDonor.name || currentDonor.donorName || '').trim();
+      const nextName = (updated.name || previousName).trim();
+      const nextPhone = (updated.phone || '').trim();
+
+      const saved = await donorApi.update(id, { ...updated, id, name: nextName, phone: nextPhone });
+      setDonors((prev) => prev.map((d) => (d.id === id ? saved : d)));
+
+      if (previousName && previousName.toLowerCase() !== nextName.toLowerCase()) {
+        const matchingDonations = donations.filter((d) => (d.donorName || '').trim().toLowerCase() === previousName.toLowerCase());
+        await Promise.all(
+          matchingDonations.map((donation) =>
+            donationApi.update(donation.id, { ...donation, donorName: nextName, phone: nextPhone || donation.phone || '' })
+          )
+        );
+        setDonations((prev) =>
+          prev.map((d) =>
+            (d.donorName || '').trim().toLowerCase() === previousName.toLowerCase()
+              ? { ...d, donorName: nextName, phone: nextPhone || d.phone || '' }
+              : d
+          )
+        );
+      }
+
+      showNotification('Donor updated successfully!', 'success');
+    } catch {
+      showNotification('Failed to update donor!', 'error');
+    }
+  };
+
+  const deleteDonor = async (id) => {
+    try {
+      await donorApi.delete(id);
+      setDonors((prev) => prev.filter((d) => d.id !== id));
+      showNotification('Donor deleted!', 'info');
+    } catch {
+      showNotification('Failed to delete donor!', 'error');
     }
   };
 
@@ -221,8 +298,9 @@ export const DataProvider = ({ children }) => {
     getTotalDonations() - getTotalExpenses() - getTotalLoansGiven() + getTotalRepayments() + getTotalSurplus();
 
   const value = {
-    donations, expenses, loans, repayments, surplus, loading,
+    donations, donors, expenses, loans, repayments, surplus, loading,
     addDonation, updateDonation, deleteDonation,
+    addDonor, updateDonor, deleteDonor,
     addExpense, updateExpense, deleteExpense,
     addLoan, updateLoan, deleteLoan,
     addRepayment, deleteRepayment,
