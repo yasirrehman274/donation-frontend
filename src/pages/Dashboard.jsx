@@ -11,6 +11,12 @@ export default function Dashboard() {
     getTotalDonations, getTotalExpenses, getActiveLoansTotal, getCurrentBalance, getTotalSurplus,
   } = useData();
 
+  const organization = {
+    founderName: 'Syed Zahid Ali',
+    founderImage: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+    motive: 'To uplift communities through compassion, transparent giving, and sustainable support for education, welfare, and social development.',
+  };
+
   const recentDonations = [...donations].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   const recentExpenses = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   const year = new Date().getFullYear();
@@ -35,6 +41,27 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader icon="fa-user-tie" title="About Our Organization" />
+        <CardBody>
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-5">
+            <img
+              src={organization.founderImage}
+              alt={organization.founderName}
+              className="w-28 h-28 rounded-full object-cover border-4 border-primary/10 shadow-sm"
+            />
+            <div className="space-y-2 text-sm text-gray-700">
+              <div>
+                <span className="font-semibold text-dark">Founder Name:</span> {organization.founderName}
+              </div>
+              <div>
+                <span className="font-semibold text-dark">Organization Motive:</span> {organization.motive}
+              </div>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+
       <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((s, i) => (
           <StatCard key={i} title={s.title} value={formatPKR(s.value)} icon={s.icon} color={s.color} />

@@ -566,6 +566,15 @@
       "notes": "",
       "id": "id_1785830642360_h2uyli6go",
       "createdAt": "2026-08-04T08:04:02.360Z"
+    },
+    {
+      "donorName": "Syeda Samina Kausar",
+      "phone": "",
+      "amount": 500,
+      "date": "2026-08-05",
+      "notes": "",
+      "id": "id_1785934054923_120hlgqau",
+      "createdAt": "2026-08-05T12:47:34.923Z"
     }
   ],
   "expenses": [],
@@ -655,6 +664,12 @@
       "phone": "",
       "id": "id_1785830618108_z5cpg76lb",
       "createdAt": "2026-08-04T08:03:38.108Z"
+    },
+    {
+      "name": "Syeda Samina Kausar",
+      "phone": "",
+      "id": "id_1785934054874_hudfo4yx5",
+      "createdAt": "2026-08-05T12:47:34.874Z"
     }
   ]
 }

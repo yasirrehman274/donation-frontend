@@ -17,7 +17,7 @@ import Surplus from './pages/Surplus';
 const PAGE_TITLES = {
   dashboard: 'Dashboard', donations: 'Manage Donations', donors: 'Donors List',
   expenses: 'Manage Expenses', loans: 'Manage Loans', repayments: 'Loan Repayments',
-  reports: 'Reports & Analytics', settings: 'Settings',
+  reports: 'Reports & Analytics', settings: 'Settings', surplus: 'Surplus Management',
 };
 
 const PAGES = {
