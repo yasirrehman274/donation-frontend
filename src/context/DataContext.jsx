@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from './AuthContext';
 import { donationApi } from '../api/donationApi';
 import { donorApi } from '../api/donarAPI';
 import { expenseApi } from '../api/expenseApi';
@@ -12,6 +13,8 @@ const DataContext = createContext();
 export const useData = () => useContext(DataContext);
 
 export const DataProvider = ({ children }) => {
+  const { user } = useAuth();
+  const isMember = user && user.role === 'member';
   const [donations, setDonations] = useState([]);
   const [donors, setDonors] = useState([]);
   const [expenses, setExpenses] = useState([]);
@@ -19,37 +22,51 @@ export const DataProvider = ({ children }) => {
   const [repayments, setRepayments] = useState([]);
   const [surplus, setSurplus] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { notification, showNotification } = useNotification();
+  const { showNotification } = useNotification();
 
-  // ===== FETCH ALL DATA FROM JSON FILE (via Axios) =====
+  // ===== FETCH ALL DATA FROM THE BACKEND =====
   const fetchAllData = useCallback(async () => {
     try {
       setLoading(true);
-      const [don, donorList, exp, loan, rep, sur] = await Promise.all([
-        donationApi.getAll(),
-        donorApi.getAll(),
-        expenseApi.getAll(),
-        loanApi.getAll(),
-        repaymentApi.getAll(),
-        surplusApi.getAll(),
-      ]);
-      setDonations(don || []);
-      setDonors(donorList || []);
-      setExpenses(exp || []);
-      setLoans(loan || []);
-      setRepayments(rep || []);
-      setSurplus(sur || []);
+      if (isMember) {
+        const don = await donationApi.getAll();
+        setDonations(don || []);
+      } else {
+        const [don, donorList, exp, loan, rep, sur] = await Promise.all([
+          donationApi.getAll(),
+          donorApi.getAll(),
+          expenseApi.getAll(),
+          loanApi.getAll(),
+          repaymentApi.getAll(),
+          surplusApi.getAll(),
+        ]);
+        setDonations(don || []);
+        setDonors(donorList || []);
+        setExpenses(exp || []);
+        setLoans(loan || []);
+        setRepayments(rep || []);
+        setSurplus(sur || []);
+      }
     } catch (err) {
-      showNotification('Failed to load data. Is JSON server running?', 'error');
+      showNotification('Failed to load data. Is the backend server running?', 'error');
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [showNotification]);
+  }, [isMember, showNotification]);
 
   useEffect(() => {
     fetchAllData();
   }, [fetchAllData]);
+
+  const refreshDonations = useCallback(async () => {
+    try {
+      const list = await donationApi.getAll();
+      setDonations(list || []);
+    } catch (err) {
+      showNotification('Failed to refresh donations!', 'error');
+    }
+  }, [showNotification]);
 
   // ===== DONATIONS =====
   const addDonation = async (donation) => {
@@ -96,6 +113,30 @@ export const DataProvider = ({ children }) => {
       showNotification('Donation deleted!', 'info');
     } catch {
       showNotification('Failed to delete donation!', 'error');
+    }
+  };
+
+  const approveDonation = async (id) => {
+    try {
+      const saved = await donationApi.approve(id);
+      setDonations((prev) => prev.map((d) => (d.id === id ? saved : d)));
+      showNotification('Donation approved!', 'success');
+      return saved;
+    } catch {
+      showNotification('Failed to approve donation!', 'error');
+      return null;
+    }
+  };
+
+  const rejectDonation = async (id) => {
+    try {
+      const saved = await donationApi.reject(id);
+      setDonations((prev) => prev.map((d) => (d.id === id ? saved : d)));
+      showNotification('Donation rejected!', 'success');
+      return saved;
+    } catch {
+      showNotification('Failed to reject donation!', 'error');
+      return null;
     }
   };
 
@@ -298,8 +339,8 @@ export const DataProvider = ({ children }) => {
     getTotalDonations() - getTotalExpenses() - getTotalLoansGiven() + getTotalRepayments() + getTotalSurplus();
 
   const value = {
-    donations, donors, expenses, loans, repayments, surplus, loading,
-    addDonation, updateDonation, deleteDonation,
+    donations, donors, expenses, loans, repayments, surplus, loading, isMember,
+    addDonation, updateDonation, deleteDonation, approveDonation, rejectDonation,
     addDonor, updateDonor, deleteDonor,
     addExpense, updateExpense, deleteExpense,
     addLoan, updateLoan, deleteLoan,
@@ -308,7 +349,7 @@ export const DataProvider = ({ children }) => {
     getLoanTotalRepaid, getTotalDonations, getTotalExpenses,
     getTotalLoansGiven, getTotalRepayments, getTotalSurplus,
     getActiveLoansTotal, getCurrentBalance,
-    notification, showNotification, fetchAllData,
+    showNotification, fetchAllData, refreshDonations,
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

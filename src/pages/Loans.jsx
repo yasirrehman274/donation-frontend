@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
-import { formatPKR, formatDate, getTodayDate } from '../utils/helpers';
+import { formatPKR, formatDate, getTodayDate, sanitizePhone, isValidPhone, PHONE_ERROR, PHONE_MAX_LENGTH } from '../utils/helpers';
 import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import { Table, Thead, Td, Tr, EmptyRow } from '../components/ui/Table';
 import Button from '../components/ui/Button';
 import Input, { Textarea } from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Badge from '../components/ui/Badge';
+import { confirmDelete } from '../utils/alert';
 
 const emptyForm = { borrowerName: '', phone: '', cnic: '', amount: '', date: getTodayDate(), returnDate: '', notes: '' };
 
@@ -15,11 +16,13 @@ export default function Loans() {
   const [form, setForm] = useState(emptyForm);
   const [editData, setEditData] = useState(null);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.name === 'phone' ? sanitizePhone(e.target.value) : e.target.value });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.borrowerName || !form.amount || !form.date) return showNotification('Please fill all required fields!', 'error');
+    if (form.phone && !isValidPhone(form.phone)) return showNotification(PHONE_ERROR, 'error');
     if (Number(form.amount) > getCurrentBalance()) return showNotification(`Insufficient balance! Available: ${formatPKR(getCurrentBalance())}`, 'error');
     addLoan({ ...form, amount: Number(form.amount) });
     setForm(emptyForm);
@@ -27,12 +30,14 @@ export default function Loans() {
 
   const handleUpdate = () => {
     if (!editData.borrowerName || !editData.amount || !editData.date) return showNotification('Please fill all required fields!', 'error');
+    if (editData.phone && !isValidPhone(editData.phone)) return showNotification(PHONE_ERROR, 'error');
     updateLoan(editData.id, { ...editData, amount: Number(editData.amount) });
     setEditData(null);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Delete this loan AND all its repayments?')) deleteLoan(id);
+  const handleDelete = async (id) => {
+    const { isConfirmed } = await confirmDelete();
+    if (isConfirmed) deleteLoan(id);
   };
 
   const sorted = [...loans].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -49,7 +54,7 @@ export default function Loans() {
         <CardBody>
           <form onSubmit={handleSubmit} className="grid gap-4 grid-cols-1 md:grid-cols-2">
             <Input label="Borrower Name *" name="borrowerName" value={form.borrowerName} onChange={handleChange} placeholder="Who is taking?" />
-            <Input label="Phone Number" name="phone" value={form.phone} onChange={handleChange} placeholder="Phone" />
+            <Input label="Phone Number" name="phone" value={form.phone} onChange={handleChange} placeholder="03XX XXXXXXX" maxLength={PHONE_MAX_LENGTH} inputMode="numeric" />
             <Input label="CNIC / ID" name="cnic" value={form.cnic} onChange={handleChange} placeholder="CNIC" />
             <Input label="Loan Amount (PKR) *" type="number" name="amount" value={form.amount} onChange={handleChange} placeholder="Amount" min="1" />
             <Input label="Date Given *" type="date" name="date" value={form.date} onChange={handleChange} />
@@ -117,7 +122,7 @@ export default function Loans() {
         {editData && (
           <>
             <Input label="Borrower Name *" value={editData.borrowerName} onChange={(e) => setEditData({ ...editData, borrowerName: e.target.value })} />
-            <Input label="Phone" value={editData.phone || ''} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
+            <Input label="Phone" value={editData.phone || ''} onChange={(e) => setEditData({ ...editData, phone: sanitizePhone(e.target.value) })} maxLength={PHONE_MAX_LENGTH} inputMode="numeric" />
             <Input label="CNIC" value={editData.cnic || ''} onChange={(e) => setEditData({ ...editData, cnic: e.target.value })} />
             <Input label="Loan Amount (PKR) *" type="number" value={editData.amount} onChange={(e) => setEditData({ ...editData, amount: e.target.value })} min="1" />
             <Input label="Date Given *" type="date" value={editData.date} onChange={(e) => setEditData({ ...editData, date: e.target.value })} />

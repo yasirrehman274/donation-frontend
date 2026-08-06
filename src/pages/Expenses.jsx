@@ -8,6 +8,7 @@ import Input, { Textarea } from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Modal from '../components/ui/Modal';
 import Badge from '../components/ui/Badge';
+import { confirmDelete } from '../utils/alert';
 
 const emptyForm = { purpose: '', category: 'General', amount: '', date: getTodayDate(), notes: '' };
 
@@ -33,7 +34,10 @@ export default function Expenses() {
     setEditData(null);
   };
 
-  const handleDelete = (id) => { if (window.confirm('Delete this expense?')) deleteExpense(id); };
+  const handleDelete = async (id) => {
+    const { isConfirmed } = await confirmDelete();
+    if (isConfirmed) deleteExpense(id);
+  };
 
   let filtered = [...expenses];
   if (filter.from) filtered = filtered.filter((e) => e.date >= filter.from);

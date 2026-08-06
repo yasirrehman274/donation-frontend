@@ -1,14 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { toast, errorPopup } from '../utils/alert';
 
 export const useNotification = () => {
-  const [notification, setNotification] = useState({ message: '', type: '', show: false });
-
   const showNotification = useCallback((message, type = 'success') => {
-    setNotification({ message, type, show: true });
-    setTimeout(() => {
-      setNotification((prev) => ({ ...prev, show: false }));
-    }, 3000);
+    if (type === 'error') {
+      errorPopup(message);
+    } else {
+      toast(message, type);
+    }
   }, []);
 
-  return { notification, showNotification };
+  return { showNotification };
 };

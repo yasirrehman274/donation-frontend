@@ -12,6 +12,7 @@ import Button from "../components/ui/Button";
 import Input, { Textarea } from "../components/ui/Input";
 import Modal from "../components/ui/Modal";
 import Badge from "../components/ui/Badge";
+import { confirmDelete } from "../utils/alert";
 
 // Derive "YYYY-MM" from a "YYYY-MM-DD" date string
 const monthFromDate = (dateStr) => (dateStr ? dateStr.slice(0, 7) : "");
@@ -71,8 +72,9 @@ export default function Surplus() {
     setEditData(null);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Delete this surplus entry?")) deleteSurplus(id);
+  const handleDelete = async (id) => {
+    const { isConfirmed } = await confirmDelete();
+    if (isConfirmed) deleteSurplus(id);
   };
 
   const sorted = [...surplus].sort((a, b) =>

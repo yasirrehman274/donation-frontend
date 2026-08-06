@@ -1,6 +1,8 @@
 import React from 'react';
+import LogoutButton from '../ui/LogoutButton';
+import NotificationBell from '../notification/NotificationBell';
 
-export default function Topbar({ title, onMenuToggle }) {
+export default function Topbar({ title, onMenuToggle, showLogout = true, showNotifications = false }) {
   const currentDate = new Date().toLocaleDateString('en-PK', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
@@ -12,6 +14,8 @@ export default function Topbar({ title, onMenuToggle }) {
       </button>
       <h1 className="text-xl font-semibold text-dark">{title}</h1>
       <span className="ml-auto text-xs text-gray-500 font-medium hidden sm:block">{currentDate}</span>
+      {showNotifications && <NotificationBell />}
+      {showLogout && <LogoutButton />}
     </div>
   );
 }

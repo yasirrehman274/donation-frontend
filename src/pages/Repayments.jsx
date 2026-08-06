@@ -6,6 +6,7 @@ import { Table, Thead, Td, Tr, EmptyRow } from '../components/ui/Table';
 import Button from '../components/ui/Button';
 import Input, { Textarea } from '../components/ui/Input';
 import Select from '../components/ui/Select';
+import { confirmDelete } from '../utils/alert';
 
 export default function Repayments() {
   const { loans, repayments, addRepayment, deleteRepayment, updateLoan, getLoanTotalRepaid, showNotification } = useData();
@@ -28,7 +29,8 @@ export default function Repayments() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this repayment?')) return;
+    const { isConfirmed } = await confirmDelete();
+    if (!isConfirmed) return;
     const rep = repayments.find((r) => r.id === id);
     await deleteRepayment(id);
     if (rep) {

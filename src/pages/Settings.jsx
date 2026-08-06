@@ -26,7 +26,7 @@ export default function Settings() {
     reader.onload = () => {
       try {
         JSON.parse(reader.result);
-        showNotification('Import: Replace db.json with this file, then restart server.', 'info');
+        showNotification('Import: Not supported with the backend API yet.', 'info');
       } catch {
         showNotification('Invalid JSON file!', 'error');
       }
@@ -58,10 +58,10 @@ export default function Settings() {
         <CardBody>
           <div className="space-y-1 text-sm">
             <p className="font-semibold">Donation Management System</p>
-            <p>Version 3.0 (React + Axios + Tailwind + JSON Server)</p>
-            <p>Data stored in <code className="bg-gray-100 px-1 rounded">db.json</code> via REST API (Axios)</p>
+            <p>Version 4.0 (React + Axios + Tailwind + Node.js/Express + MongoDB)</p>
+            <p>Data served by the backend REST API (MongoDB)</p>
             <p>Currency: PKR (Pakistani Rupee)</p>
-            <p className="text-gray-500 mt-2">All changes are saved to the JSON file through json-server.</p>
+            <p className="text-gray-500 mt-2">All changes are saved to MongoDB through the backend API.</p>
           </div>
         </CardBody>
       </Card>

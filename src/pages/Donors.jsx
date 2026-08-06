@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
-import { formatPKR, formatDate } from '../utils/helpers';
+import { formatPKR, formatDate, sanitizePhone, isValidPhone, PHONE_ERROR, PHONE_MAX_LENGTH } from '../utils/helpers';
 import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import { Table, Thead, Td, Tr, EmptyRow } from '../components/ui/Table';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
+import { confirmDelete } from '../utils/alert';
 
 export default function Donors() {
   const { donations, donors, addDonor, updateDonor, deleteDonor, showNotification } = useData();
@@ -43,6 +44,7 @@ export default function Donors() {
   const handleAddDonor = async (e) => {
     e.preventDefault();
     if (!newDonor.name.trim()) return showNotification('Please enter donor name!', 'error');
+    if (newDonor.phone && !isValidPhone(newDonor.phone)) return showNotification(PHONE_ERROR, 'error');
 
     const exists = donors.some((d) => (d.name || d.donorName || '').toLowerCase() === newDonor.name.trim().toLowerCase());
     if (exists) {
@@ -58,13 +60,15 @@ export default function Donors() {
 
   const handleUpdateDonor = async () => {
     if (!editingDonor?.name?.trim()) return showNotification('Please enter donor name!', 'error');
+    if (editingDonor.phone && !isValidPhone(editingDonor.phone)) return showNotification(PHONE_ERROR, 'error');
     await updateDonor(editingDonor.id, { ...editingDonor, name: editingDonor.name.trim(), phone: (editingDonor.phone || '').trim() });
     setEditingDonor(null);
   };
 
   const handleDeleteDonor = async (donor) => {
     if (!donor?.id) return showNotification('This donor cannot be deleted from the saved donor list yet.', 'error');
-    if (window.confirm(`Delete donor: ${donor.name}?`)) {
+    const { isConfirmed } = await confirmDelete();
+    if (isConfirmed) {
       await deleteDonor(donor.id);
     }
   };
@@ -76,7 +80,7 @@ export default function Donors() {
         <CardBody>
           <form onSubmit={handleAddDonor} className="grid gap-4 grid-cols-1 md:grid-cols-3">
             <Input label="Donor Name *" value={newDonor.name} onChange={(e) => setNewDonor({ ...newDonor, name: e.target.value })} placeholder="Enter donor name" />
-            <Input label="Phone Number" value={newDonor.phone} onChange={(e) => setNewDonor({ ...newDonor, phone: e.target.value })} placeholder="Enter phone" />
+            <Input label="Phone Number" value={newDonor.phone} onChange={(e) => setNewDonor({ ...newDonor, phone: sanitizePhone(e.target.value) })} placeholder="03XX XXXXXXX" maxLength={PHONE_MAX_LENGTH} inputMode="numeric" />
             <div className="flex items-end">
               <Button type="submit"><i className="fas fa-save"></i> Save Donor</Button>
             </div>
@@ -153,7 +157,7 @@ export default function Donors() {
         {editingDonor && (
           <>
             <Input label="Donor Name *" value={editingDonor.name || ''} onChange={(e) => setEditingDonor({ ...editingDonor, name: e.target.value })} />
-            <Input label="Phone Number" value={editingDonor.phone || ''} onChange={(e) => setEditingDonor({ ...editingDonor, phone: e.target.value })} />
+            <Input label="Phone Number" value={editingDonor.phone || ''} onChange={(e) => setEditingDonor({ ...editingDonor, phone: sanitizePhone(e.target.value) })} maxLength={PHONE_MAX_LENGTH} inputMode="numeric" />
             <Button onClick={handleUpdateDonor}><i className="fas fa-save"></i> Update Donor</Button>
           </>
         )}
