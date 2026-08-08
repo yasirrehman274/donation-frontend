@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { getAuthToken, clearAuth } from '../utils/authStorage';
 
-// Base URL points to the backend API running on port 5000
+// Base URL points to the backend API. Configure via VITE_API_BASE_URL in .env;
+// falls back to the local backend (port 5000) for development.
 const axiosClient = axios.create({
-  baseURL: 'http://localhost:5000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
   headers: {
     'Content-Type': 'application/json',
   },
