@@ -149,7 +149,7 @@ export default function Donations() {
         <CardHeader icon="fa-list" title="All Donations" action={<Badge>{filtered.length}</Badge>} />
         <CardBody>
           <Table>
-            <Thead columns={['#', 'Donor Name', 'Phone', 'Amount (PKR)', 'Date', 'Payment Method', 'Status', 'Screenshot', 'Actions']} />
+            <Thead columns={['#', 'Donor Name', 'Amount (PKR)', 'Date', 'Status', 'Actions']} />
             <tbody>
               {filtered.length === 0 ? (
                 <EmptyRow colSpan={9} message="No donations found" />
@@ -157,12 +157,12 @@ export default function Donations() {
                 <Tr key={d.id}>
                   <Td>{i + 1}</Td>
                   <Td className="font-semibold">{d.donorName}</Td>
-                  <Td>{d.phone || '-'}</Td>
+                  {/* <Td>{d.phone || '-'}</Td> */}
                   <Td className="amount-positive">{formatPKR(d.amount)}</Td>
                   <Td>{formatDate(d.date)}</Td>
-                  <Td>{d.paymentMethod || '-'}</Td>
+                  {/* <Td>{d.paymentMethod || '-'}</Td> */}
                   <Td><Badge status={d.status}>{statusLabel(d.status)}</Badge></Td>
-                  <Td>
+                  {/* <Td>
                     {d.screenshot ? (
                       <a href={d.screenshot} target="_blank" rel="noreferrer" className="text-primary hover:underline">
                         <i className="fas fa-image"></i> View
@@ -170,7 +170,7 @@ export default function Donations() {
                     ) : (
                       '-'
                     )}
-                  </Td>
+                  </Td> */}
                   <Td>
                     <div className="flex gap-1 flex-wrap">
                       <Button size="xs" onClick={() => setViewData({ ...d })} title="View"><i className="fas fa-eye"></i></Button>
