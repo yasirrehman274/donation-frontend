@@ -22,6 +22,10 @@ export default function Members() {
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState(emptyMember);
   const [addErrors, setAddErrors] = useState({});
+  const [savingAdd, setSavingAdd] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [savingReset, setSavingReset] = useState(false);
+  const [busyId, setBusyId] = useState(null);
 
   const [editUser, setEditUser] = useState(null);
   const [editForm, setEditForm] = useState({ fullName: '', phone: '', role: 'member', status: 'active' });
@@ -57,7 +61,9 @@ export default function Members() {
 
   const handleAdd = async (e) => {
     e.preventDefault();
+    if (savingAdd) return;
     if (!validateAdd()) return;
+    setSavingAdd(true);
     try {
       await userApi.create({
         fullName: addForm.fullName.trim(),
@@ -71,6 +77,8 @@ export default function Members() {
       loadUsers();
     } catch (err) {
       showNotification(getApiError(err), 'error');
+    } finally {
+      setSavingAdd(false);
     }
   };
 
@@ -80,10 +88,12 @@ export default function Members() {
   };
 
   const handleUpdate = async () => {
+    if (savingEdit) return;
     if (!editForm.fullName.trim() || !editForm.phone.trim()) {
       return showNotification('Full name and phone number are required!', 'error');
     }
     if (!isValidPhone(editForm.phone)) return showNotification(PHONE_ERROR, 'error');
+    setSavingEdit(true);
     try {
       await userApi.update(editUser.id, {
         fullName: editForm.fullName.trim(),
@@ -96,22 +106,30 @@ export default function Members() {
       loadUsers();
     } catch (err) {
       showNotification(getApiError(err), 'error');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
   const handleToggleStatus = async (user) => {
+    if (busyId) return;
     const nextStatus = user.status === 'active' ? 'inactive' : 'active';
+    setBusyId(user.id);
     try {
       await userApi.update(user.id, { status: nextStatus });
       showNotification(nextStatus === 'active' ? 'Member activated!' : 'Member deactivated!', 'info');
       loadUsers();
     } catch (err) {
       showNotification(getApiError(err), 'error');
+    } finally {
+      setBusyId(null);
     }
   };
 
   const handleResetPassword = async () => {
+    if (savingReset) return;
     if (resetPassword.length < 6) return showNotification('Password must be at least 6 characters!', 'error');
+    setSavingReset(true);
     try {
       await userApi.update(resetUser.id, { password: resetPassword });
       showNotification('Password reset successfully!', 'success');
@@ -119,18 +137,23 @@ export default function Members() {
       setResetPassword('');
     } catch (err) {
       showNotification(getApiError(err), 'error');
+    } finally {
+      setSavingReset(false);
     }
   };
 
   const handleDelete = async (user) => {
     const { isConfirmed } = await confirmDelete();
     if (!isConfirmed) return;
+    setBusyId(user.id);
     try {
       await userApi.delete(user.id);
       showNotification('Member deleted!', 'info');
       loadUsers();
     } catch (err) {
       showNotification(getApiError(err), 'error');
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -170,11 +193,11 @@ export default function Members() {
                     <Td>
                       <div className="flex gap-1 flex-wrap">
                         <Button variant="warning" size="xs" onClick={() => openEdit(u)} title="Edit"><i className="fas fa-edit"></i></Button>
-                        <Button variant={u.status === 'active' ? 'secondary' : 'success'} size="xs" onClick={() => handleToggleStatus(u)} title={u.status === 'active' ? 'Deactivate' : 'Activate'}>
+                        <Button variant={u.status === 'active' ? 'secondary' : 'success'} size="xs" onClick={() => handleToggleStatus(u)} loading={busyId === u.id} disabled={busyId !== null && busyId !== u.id} title={u.status === 'active' ? 'Deactivate' : 'Activate'}>
                           <i className={`fas ${u.status === 'active' ? 'fa-user-slash' : 'fa-user-check'}`}></i>
                         </Button>
                         <Button variant="secondary" size="xs" onClick={() => setResetUser(u)} title="Reset Password"><i className="fas fa-key"></i></Button>
-                        <Button variant="danger" size="xs" onClick={() => handleDelete(u)} title="Delete"><i className="fas fa-trash"></i></Button>
+                        <Button variant="danger" size="xs" onClick={() => handleDelete(u)} loading={busyId === u.id} disabled={busyId !== null && busyId !== u.id} title="Delete"><i className="fas fa-trash"></i></Button>
                       </div>
                     </Td>
                   </Tr>
@@ -203,7 +226,7 @@ export default function Members() {
             <option value="member">Member</option>
             <option value="admin">Admin</option>
           </Select>
-          <Button type="submit"><i className="fas fa-save"></i> Add Member</Button>
+          <Button type="submit" loading={savingAdd}><i className="fas fa-save"></i> Add Member</Button>
         </form>
       </Modal>
 
@@ -220,7 +243,7 @@ export default function Members() {
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </Select>
-            <Button onClick={handleUpdate}><i className="fas fa-save"></i> Update Member</Button>
+            <Button onClick={handleUpdate} loading={savingEdit}><i className="fas fa-save"></i> Update Member</Button>
           </div>
         )}
       </Modal>
@@ -229,7 +252,7 @@ export default function Members() {
         {resetUser && (
           <div className="flex flex-col gap-4">
             <Input label="New Password *" type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="Min 6 characters" />
-            <Button onClick={handleResetPassword}><i className="fas fa-key"></i> Reset Password</Button>
+            <Button onClick={handleResetPassword} loading={savingReset}><i className="fas fa-key"></i> Reset Password</Button>
           </div>
         )}
       </Modal>

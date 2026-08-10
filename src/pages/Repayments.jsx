@@ -12,33 +12,46 @@ export default function Repayments() {
   const { loans, repayments, addRepayment, deleteRepayment, updateLoan, getLoanTotalRepaid, showNotification } = useData();
   const [form, setForm] = useState({ loanId: '', amount: '', date: getTodayDate(), notes: '' });
   const [viewLoanId, setViewLoanId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [busyId, setBusyId] = useState(null);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
     if (!form.loanId || !form.amount || !form.date) return showNotification('Please fill all required fields!', 'error');
     const loan = loans.find((l) => l.id === form.loanId);
     const alreadyRepaid = getLoanTotalRepaid(form.loanId);
     const remaining = Number(loan.amount) - alreadyRepaid;
     if (Number(form.amount) > remaining) return showNotification(`Exceeds remaining! Remaining: ${formatPKR(remaining)}`, 'error');
 
-    await addRepayment({ loanId: form.loanId, borrowerName: loan.borrowerName, amount: Number(form.amount), date: form.date, notes: form.notes });
-    if (alreadyRepaid + Number(form.amount) >= Number(loan.amount)) updateLoan(form.loanId, { status: 'paid' });
-    setForm({ loanId: '', amount: '', date: getTodayDate(), notes: '' });
+    setSaving(true);
+    try {
+      await addRepayment({ loanId: form.loanId, borrowerName: loan.borrowerName, amount: Number(form.amount), date: form.date, notes: form.notes });
+      if (alreadyRepaid + Number(form.amount) >= Number(loan.amount)) updateLoan(form.loanId, { status: 'paid' });
+      setForm({ loanId: '', amount: '', date: getTodayDate(), notes: '' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id) => {
     const { isConfirmed } = await confirmDelete();
     if (!isConfirmed) return;
-    const rep = repayments.find((r) => r.id === id);
-    await deleteRepayment(id);
-    if (rep) {
-      const loan = loans.find((l) => l.id === rep.loanId);
-      if (loan) {
-        const newRepaid = getLoanTotalRepaid(rep.loanId) - Number(rep.amount);
-        if (newRepaid < Number(loan.amount)) updateLoan(rep.loanId, { status: 'active' });
+    setBusyId(id);
+    try {
+      const rep = repayments.find((r) => r.id === id);
+      await deleteRepayment(id);
+      if (rep) {
+        const loan = loans.find((l) => l.id === rep.loanId);
+        if (loan) {
+          const newRepaid = getLoanTotalRepaid(rep.loanId) - Number(rep.amount);
+          if (newRepaid < Number(loan.amount)) updateLoan(rep.loanId, { status: 'active' });
+        }
       }
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -70,7 +83,7 @@ export default function Repayments() {
               <Textarea label="Notes" name="notes" value={form.notes} onChange={handleChange} rows="2" />
             </div>
             <div className="md:col-span-2">
-              <Button type="submit"><i className="fas fa-save"></i> Save Repayment</Button>
+              <Button type="submit" loading={saving}><i className="fas fa-save"></i> Save Repayment</Button>
             </div>
           </form>
         </CardBody>
@@ -91,7 +104,7 @@ export default function Repayments() {
                   <Td className="amount-positive">{formatPKR(r.amount)}</Td>
                   <Td>{formatDate(r.date)}</Td>
                   <Td>{r.notes || '-'}</Td>
-                  <Td><Button variant="danger" size="xs" onClick={() => handleDelete(r.id)}><i className="fas fa-trash"></i></Button></Td>
+                  <Td><Button variant="danger" size="xs" onClick={() => handleDelete(r.id)} loading={busyId === r.id} disabled={busyId !== null && busyId !== r.id}><i className="fas fa-trash"></i></Button></Td>
                 </Tr>
               ))}
             </tbody>

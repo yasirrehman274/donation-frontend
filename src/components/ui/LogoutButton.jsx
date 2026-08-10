@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const VARIANTS = {
@@ -9,11 +8,9 @@ const VARIANTS = {
 
 export default function LogoutButton({ variant = 'topbar', className = '' }) {
   const { logout } = useAuth();
-  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    navigate('/login', { replace: true });
   };
 
   return (

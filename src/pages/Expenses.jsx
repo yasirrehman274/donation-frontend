@@ -17,26 +17,47 @@ export default function Expenses() {
   const [form, setForm] = useState(emptyForm);
   const [editData, setEditData] = useState(null);
   const [filter, setFilter] = useState({ from: '', to: '', category: '' });
+  const [saving, setSaving] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [busyId, setBusyId] = useState(null);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
     if (!form.purpose || !form.amount || !form.date) return showNotification('Please fill all required fields!', 'error');
     if (Number(form.amount) > getCurrentBalance()) return showNotification(`Insufficient balance! Available: ${formatPKR(getCurrentBalance())}`, 'error');
-    addExpense({ ...form, amount: Number(form.amount) });
-    setForm(emptyForm);
+    setSaving(true);
+    try {
+      await addExpense({ ...form, amount: Number(form.amount) });
+      setForm(emptyForm);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
+    if (savingEdit) return;
     if (!editData.purpose || !editData.amount || !editData.date) return showNotification('Please fill all required fields!', 'error');
-    updateExpense(editData.id, { ...editData, amount: Number(editData.amount) });
-    setEditData(null);
+    setSavingEdit(true);
+    try {
+      await updateExpense(editData.id, { ...editData, amount: Number(editData.amount) });
+      setEditData(null);
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const handleDelete = async (id) => {
     const { isConfirmed } = await confirmDelete();
-    if (isConfirmed) deleteExpense(id);
+    if (!isConfirmed) return;
+    setBusyId(id);
+    try {
+      await deleteExpense(id);
+    } finally {
+      setBusyId(null);
+    }
   };
 
   let filtered = [...expenses];
@@ -62,7 +83,7 @@ export default function Expenses() {
               <Textarea label="Notes" name="notes" value={form.notes} onChange={handleChange} rows="2" placeholder="Details..." />
             </div>
             <div className="md:col-span-2">
-              <Button type="submit"><i className="fas fa-save"></i> Save Expense</Button>
+              <Button type="submit" loading={saving}><i className="fas fa-save"></i> Save Expense</Button>
             </div>
           </form>
         </CardBody>
@@ -102,7 +123,7 @@ export default function Expenses() {
                   <Td>
                     <div className="flex gap-1">
                       <Button variant="warning" size="xs" onClick={() => setEditData({ ...e })}><i className="fas fa-edit"></i></Button>
-                      <Button variant="danger" size="xs" onClick={() => handleDelete(e.id)}><i className="fas fa-trash"></i></Button>
+                      <Button variant="danger" size="xs" onClick={() => handleDelete(e.id)} loading={busyId === e.id} disabled={busyId !== null && busyId !== e.id}><i className="fas fa-trash"></i></Button>
                     </div>
                   </Td>
                 </Tr>
@@ -129,7 +150,7 @@ export default function Expenses() {
             <Input label="Amount (PKR) *" type="number" value={editData.amount} onChange={(e) => setEditData({ ...editData, amount: e.target.value })} min="1" />
             <Input label="Date *" type="date" value={editData.date} onChange={(e) => setEditData({ ...editData, date: e.target.value })} />
             <Textarea label="Notes" value={editData.notes || ''} onChange={(e) => setEditData({ ...editData, notes: e.target.value })} rows="2" />
-            <Button onClick={handleUpdate}><i className="fas fa-save"></i> Update Expense</Button>
+            <Button onClick={handleUpdate} loading={savingEdit}><i className="fas fa-save"></i> Update Expense</Button>
           </>
         )}
       </Modal>

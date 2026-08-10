@@ -40,12 +40,16 @@ export default function Surplus() {
   } = useData();
   const [form, setForm] = useState(emptyForm);
   const [editData, setEditData] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [busyId, setBusyId] = useState(null);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
     if (!form.amount || !form.date)
       return showNotification("Please fill all required fields!", "error");
 
@@ -57,24 +61,41 @@ export default function Surplus() {
         "error",
       );
 
-    addSurplus({ ...form, month, amount: Number(form.amount) });
-    setForm({ ...emptyForm, date: getTodayDate() });
+    setSaving(true);
+    try {
+      await addSurplus({ ...form, month, amount: Number(form.amount) });
+      setForm({ ...emptyForm, date: getTodayDate() });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
+    if (savingEdit) return;
     if (!editData.amount || !editData.date)
       return showNotification("Please fill all required fields!", "error");
-    updateSurplus(editData.id, {
-      ...editData,
-      month: monthFromDate(editData.date),
-      amount: Number(editData.amount),
-    });
-    setEditData(null);
+    setSavingEdit(true);
+    try {
+      await updateSurplus(editData.id, {
+        ...editData,
+        month: monthFromDate(editData.date),
+        amount: Number(editData.amount),
+      });
+      setEditData(null);
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const handleDelete = async (id) => {
     const { isConfirmed } = await confirmDelete();
-    if (isConfirmed) deleteSurplus(id);
+    if (!isConfirmed) return;
+    setBusyId(id);
+    try {
+      await deleteSurplus(id);
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const sorted = [...surplus].sort((a, b) =>
@@ -128,7 +149,7 @@ export default function Surplus() {
               />
             </div>
             <div className="md:col-span-2">
-              <Button type="submit">
+              <Button type="submit" loading={saving}>
                 <i className="fas fa-save"></i> Save Surplus
               </Button>
             </div>
@@ -180,6 +201,8 @@ export default function Surplus() {
                           variant="danger"
                           size="xs"
                           onClick={() => handleDelete(s.id)}
+                          loading={busyId === s.id}
+                          disabled={busyId !== null && busyId !== s.id}
                         >
                           <i className="fas fa-trash"></i>
                         </Button>
@@ -233,7 +256,7 @@ export default function Surplus() {
               }
               rows="2"
             />
-            <Button onClick={handleUpdate}>
+            <Button onClick={handleUpdate} loading={savingEdit}>
               <i className="fas fa-save"></i> Update Surplus
             </Button>
           </>

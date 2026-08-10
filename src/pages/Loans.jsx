@@ -15,29 +15,50 @@ export default function Loans() {
   const { loans, addLoan, updateLoan, deleteLoan, getLoanTotalRepaid, getCurrentBalance, showNotification } = useData();
   const [form, setForm] = useState(emptyForm);
   const [editData, setEditData] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [busyId, setBusyId] = useState(null);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.name === 'phone' ? sanitizePhone(e.target.value) : e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
     if (!form.borrowerName || !form.amount || !form.date) return showNotification('Please fill all required fields!', 'error');
     if (form.phone && !isValidPhone(form.phone)) return showNotification(PHONE_ERROR, 'error');
     if (Number(form.amount) > getCurrentBalance()) return showNotification(`Insufficient balance! Available: ${formatPKR(getCurrentBalance())}`, 'error');
-    addLoan({ ...form, amount: Number(form.amount) });
-    setForm(emptyForm);
+    setSaving(true);
+    try {
+      await addLoan({ ...form, amount: Number(form.amount) });
+      setForm(emptyForm);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
+    if (savingEdit) return;
     if (!editData.borrowerName || !editData.amount || !editData.date) return showNotification('Please fill all required fields!', 'error');
     if (editData.phone && !isValidPhone(editData.phone)) return showNotification(PHONE_ERROR, 'error');
-    updateLoan(editData.id, { ...editData, amount: Number(editData.amount) });
-    setEditData(null);
+    setSavingEdit(true);
+    try {
+      await updateLoan(editData.id, { ...editData, amount: Number(editData.amount) });
+      setEditData(null);
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const handleDelete = async (id) => {
     const { isConfirmed } = await confirmDelete();
-    if (isConfirmed) deleteLoan(id);
+    if (!isConfirmed) return;
+    setBusyId(id);
+    try {
+      await deleteLoan(id);
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const sorted = [...loans].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -63,7 +84,7 @@ export default function Loans() {
               <Textarea label="Purpose / Notes" name="notes" value={form.notes} onChange={handleChange} rows="2" />
             </div>
             <div className="md:col-span-2">
-              <Button type="submit"><i className="fas fa-save"></i> Save Loan</Button>
+              <Button type="submit" loading={saving}><i className="fas fa-save"></i> Save Loan</Button>
             </div>
           </form>
         </CardBody>
@@ -98,7 +119,7 @@ export default function Loans() {
                     <Td>
                       <div className="flex gap-1">
                         <Button variant="warning" size="xs" onClick={() => setEditData({ ...l })}><i className="fas fa-edit"></i></Button>
-                        <Button variant="danger" size="xs" onClick={() => handleDelete(l.id)}><i className="fas fa-trash"></i></Button>
+                        <Button variant="danger" size="xs" onClick={() => handleDelete(l.id)} loading={busyId === l.id} disabled={busyId !== null && busyId !== l.id}><i className="fas fa-trash"></i></Button>
                       </div>
                     </Td>
                   </Tr>
@@ -128,7 +149,7 @@ export default function Loans() {
             <Input label="Date Given *" type="date" value={editData.date} onChange={(e) => setEditData({ ...editData, date: e.target.value })} />
             <Input label="Return Date" type="date" value={editData.returnDate || ''} onChange={(e) => setEditData({ ...editData, returnDate: e.target.value })} />
             <Textarea label="Notes" value={editData.notes || ''} onChange={(e) => setEditData({ ...editData, notes: e.target.value })} rows="2" />
-            <Button onClick={handleUpdate}><i className="fas fa-save"></i> Update Loan</Button>
+            <Button onClick={handleUpdate} loading={savingEdit}><i className="fas fa-save"></i> Update Loan</Button>
           </>
         )}
       </Modal>

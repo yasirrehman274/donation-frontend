@@ -14,12 +14,14 @@ const SIZES = {
   xs: 'px-2 py-1 text-xs',
 };
 
-export default function Button({ children, variant = 'primary', size = 'md', className = '', ...props }) {
+export default function Button({ children, variant = 'primary', size = 'md', className = '', loading = false, disabled = false, ...props }) {
   return (
     <button
-      className={`inline-flex items-center gap-2 rounded-lg font-semibold transition-all hover:-translate-y-px ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      className={`inline-flex items-center gap-2 rounded-lg font-semibold transition-all hover:-translate-y-px disabled:opacity-60 disabled:hover:translate-y-0 disabled:cursor-not-allowed ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      disabled={disabled || loading}
       {...props}
     >
+      {loading && <i className="fas fa-circle-notch fa-spin"></i>}
       {children}
     </button>
   );

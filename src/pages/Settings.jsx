@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -6,6 +6,17 @@ import Button from '../components/ui/Button';
 export default function Settings() {
   const { donations, expenses, loans, repayments, showNotification, fetchAllData } = useData();
   const fileInputRef = useRef();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await fetchAllData();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleExport = () => {
     const data = { donations, expenses, loans, repayments, exportedAt: new Date().toISOString() };
@@ -44,7 +55,7 @@ export default function Settings() {
             <Button onClick={handleExport}><i className="fas fa-download"></i> Export Backup (JSON)</Button>
             <Button variant="secondary" onClick={() => fileInputRef.current.click()}><i className="fas fa-upload"></i> Import Data</Button>
             <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={handleImport} />
-            <Button variant="secondary" onClick={fetchAllData}><i className="fas fa-sync"></i> Refresh Data</Button>
+            <Button variant="secondary" onClick={handleRefresh} loading={refreshing}><i className="fas fa-sync"></i> Refresh Data</Button>
           </div>
           <div className="mt-5">
             <h4 className="font-semibold mb-2">Print</h4>

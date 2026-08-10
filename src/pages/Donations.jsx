@@ -26,6 +26,9 @@ export default function Donations() {
   const [editData, setEditData] = useState(null);
   const [viewData, setViewData] = useState(null);
   const [filter, setFilter] = useState({ from: '', to: '', donor: '' });
+  const [saving, setSaving] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [busyId, setBusyId] = useState(null);
 
   const donorOptions = [...new Set([
     ...donors.map((d) => (d.name || d.donorName || '').trim()).filter(Boolean),
@@ -40,36 +43,62 @@ export default function Donations() {
     setForm({ ...form, donorName, phone: selectedDonor?.phone || '' });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
     if (!form.donorName || !form.amount || !form.date) return showNotification('Please fill all required fields!', 'error');
-    addDonation({ ...form, amount: Number(form.amount) });
-    setForm(emptyForm);
+    setSaving(true);
+    try {
+      await addDonation({ ...form, amount: Number(form.amount) });
+      setForm(emptyForm);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
+    if (savingEdit) return;
     if (!editData.donorName || !editData.amount || !editData.date) return showNotification('Please fill all required fields!', 'error');
     if (editData.phone && !isValidPhone(editData.phone)) return showNotification(PHONE_ERROR, 'error');
-    updateDonation(editData.id, { ...editData, amount: Number(editData.amount) });
-    setEditData(null);
+    setSavingEdit(true);
+    try {
+      await updateDonation(editData.id, { ...editData, amount: Number(editData.amount) });
+      setEditData(null);
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const handleDelete = async (id) => {
     const { isConfirmed } = await confirmDelete();
-    if (isConfirmed) deleteDonation(id);
+    if (!isConfirmed) return;
+    setBusyId(id);
+    try {
+      await deleteDonation(id);
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const handleApprove = async (id) => {
     const { isConfirmed } = await confirmApprove();
-    if (isConfirmed) {
+    if (!isConfirmed) return;
+    setBusyId(id);
+    try {
       await approveDonation(id);
+    } finally {
+      setBusyId(null);
     }
   };
 
   const handleReject = async (id) => {
     const { isConfirmed } = await confirmReject();
-    if (isConfirmed) {
+    if (!isConfirmed) return;
+    setBusyId(id);
+    try {
       await rejectDonation(id);
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -98,7 +127,7 @@ export default function Donations() {
               <Textarea label="Notes" name="notes" value={form.notes} onChange={handleChange} rows="2" placeholder="Notes..." />
             </div>
             <div className="md:col-span-2">
-              <Button type="submit"><i className="fas fa-save"></i> Save Donation</Button>
+              <Button type="submit" loading={saving}><i className="fas fa-save"></i> Save Donation</Button>
             </div>
           </form>
         </CardBody>
@@ -147,12 +176,12 @@ export default function Donations() {
                       <Button size="xs" onClick={() => setViewData({ ...d })} title="View"><i className="fas fa-eye"></i></Button>
                       {d.status === 'pending' && (
                         <>
-                          <Button variant="success" size="xs" onClick={() => handleApprove(d.id)} title="Approve"><i className="fas fa-check"></i> Approve</Button>
-                          <Button variant="danger" size="xs" onClick={() => handleReject(d.id)} title="Reject"><i className="fas fa-times"></i> Reject</Button>
+                          <Button variant="success" size="xs" onClick={() => handleApprove(d.id)} loading={busyId === d.id} disabled={busyId !== null && busyId !== d.id} title="Approve"><i className="fas fa-check"></i> Approve</Button>
+                          <Button variant="danger" size="xs" onClick={() => handleReject(d.id)} loading={busyId === d.id} disabled={busyId !== null && busyId !== d.id} title="Reject"><i className="fas fa-times"></i> Reject</Button>
                         </>
                       )}
                       <Button variant="warning" size="xs" onClick={() => setEditData({ ...d })} title="Edit"><i className="fas fa-edit"></i></Button>
-                      <Button variant="danger" size="xs" onClick={() => handleDelete(d.id)} title="Delete"><i className="fas fa-trash"></i></Button>
+                      <Button variant="danger" size="xs" onClick={() => handleDelete(d.id)} loading={busyId === d.id} disabled={busyId !== null && busyId !== d.id} title="Delete"><i className="fas fa-trash"></i></Button>
                     </div>
                   </Td>
                 </Tr>
@@ -182,7 +211,7 @@ export default function Donations() {
             <Input label="Amount (PKR) *" type="number" value={editData.amount} onChange={(e) => setEditData({ ...editData, amount: e.target.value })} min="1" />
             <Input label="Date *" type="date" value={editData.date} onChange={(e) => setEditData({ ...editData, date: e.target.value })} />
             <Textarea label="Notes" value={editData.notes || ''} onChange={(e) => setEditData({ ...editData, notes: e.target.value })} rows="2" />
-            <Button onClick={handleUpdate}><i className="fas fa-save"></i> Update Donation</Button>
+            <Button onClick={handleUpdate} loading={savingEdit}><i className="fas fa-save"></i> Update Donation</Button>
           </>
         )}
       </Modal>

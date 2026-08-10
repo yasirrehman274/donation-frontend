@@ -14,6 +14,9 @@ export default function Donors() {
   const [selectedDonor, setSelectedDonor] = useState(null);
   const [newDonor, setNewDonor] = useState({ name: '', phone: '' });
   const [editingDonor, setEditingDonor] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [busyId, setBusyId] = useState(null);
 
   const donorMap = {};
   donors.forEach((d) => {
@@ -43,6 +46,7 @@ export default function Donors() {
 
   const handleAddDonor = async (e) => {
     e.preventDefault();
+    if (saving) return;
     if (!newDonor.name.trim()) return showNotification('Please enter donor name!', 'error');
     if (newDonor.phone && !isValidPhone(newDonor.phone)) return showNotification(PHONE_ERROR, 'error');
 
@@ -52,24 +56,39 @@ export default function Donors() {
       return;
     }
 
-    const created = await addDonor({ name: newDonor.name.trim(), phone: newDonor.phone.trim() });
-    if (created) {
-      setNewDonor({ name: '', phone: '' });
+    setSaving(true);
+    try {
+      const created = await addDonor({ name: newDonor.name.trim(), phone: newDonor.phone.trim() });
+      if (created) {
+        setNewDonor({ name: '', phone: '' });
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleUpdateDonor = async () => {
+    if (savingEdit) return;
     if (!editingDonor?.name?.trim()) return showNotification('Please enter donor name!', 'error');
     if (editingDonor.phone && !isValidPhone(editingDonor.phone)) return showNotification(PHONE_ERROR, 'error');
-    await updateDonor(editingDonor.id, { ...editingDonor, name: editingDonor.name.trim(), phone: (editingDonor.phone || '').trim() });
-    setEditingDonor(null);
+    setSavingEdit(true);
+    try {
+      await updateDonor(editingDonor.id, { ...editingDonor, name: editingDonor.name.trim(), phone: (editingDonor.phone || '').trim() });
+      setEditingDonor(null);
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const handleDeleteDonor = async (donor) => {
     if (!donor?.id) return showNotification('This donor cannot be deleted from the saved donor list yet.', 'error');
     const { isConfirmed } = await confirmDelete();
-    if (isConfirmed) {
+    if (!isConfirmed) return;
+    setBusyId(donor.id);
+    try {
       await deleteDonor(donor.id);
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -82,7 +101,7 @@ export default function Donors() {
             <Input label="Donor Name *" value={newDonor.name} onChange={(e) => setNewDonor({ ...newDonor, name: e.target.value })} placeholder="Enter donor name" />
             <Input label="Phone Number" value={newDonor.phone} onChange={(e) => setNewDonor({ ...newDonor, phone: sanitizePhone(e.target.value) })} placeholder="03XX XXXXXXX" maxLength={PHONE_MAX_LENGTH} inputMode="numeric" />
             <div className="flex items-end">
-              <Button type="submit"><i className="fas fa-save"></i> Save Donor</Button>
+              <Button type="submit" loading={saving}><i className="fas fa-save"></i> Save Donor</Button>
             </div>
           </form>
         </CardBody>
@@ -110,7 +129,7 @@ export default function Donors() {
                     <div className="flex gap-1">
                       <Button size="xs" onClick={() => setSelectedDonor(d.name)}><i className="fas fa-eye"></i></Button>
                       <Button variant="warning" size="xs" onClick={() => setEditingDonor(d)}><i className="fas fa-edit"></i></Button>
-                      <Button variant="danger" size="xs" onClick={() => handleDeleteDonor(d)}><i className="fas fa-trash"></i></Button>
+                      <Button variant="danger" size="xs" onClick={() => handleDeleteDonor(d)} loading={busyId === d.id} disabled={busyId !== null && busyId !== d.id}><i className="fas fa-trash"></i></Button>
                     </div>
                   </Td>
                 </Tr>
@@ -158,7 +177,7 @@ export default function Donors() {
           <>
             <Input label="Donor Name *" value={editingDonor.name || ''} onChange={(e) => setEditingDonor({ ...editingDonor, name: e.target.value })} />
             <Input label="Phone Number" value={editingDonor.phone || ''} onChange={(e) => setEditingDonor({ ...editingDonor, phone: sanitizePhone(e.target.value) })} maxLength={PHONE_MAX_LENGTH} inputMode="numeric" />
-            <Button onClick={handleUpdateDonor}><i className="fas fa-save"></i> Update Donor</Button>
+            <Button onClick={handleUpdateDonor} loading={savingEdit}><i className="fas fa-save"></i> Update Donor</Button>
           </>
         )}
       </Modal>
