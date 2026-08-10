@@ -13,8 +13,8 @@ export default function Dashboard() {
 
   const organization = {
     founderName: 'Syed Zahid Ali',
-    founderImage: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
-    motive: 'To uplift communities through compassion, transparent giving, and sustainable support for education, welfare, and social development.',
+    // founderImage: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+    motive: 'To support our family members in times of financial difficulty by building a collective welfare fund through regular contributions, ensuring that no family member faces a difficult situation alone.',
   };
 
   const recentDonations = [...donations].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
