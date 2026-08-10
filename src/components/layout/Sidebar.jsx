@@ -39,7 +39,7 @@ export default function Sidebar({ items, sidebarOpen, setSidebarOpen, footer }) 
     >
       <div className="p-5 flex items-center gap-3 border-b border-white/10">
         <i className="fas fa-hand-holding-heart text-3xl text-warning"></i>
-        <h2 className="text-xl font-bold">DonationMS</h2>
+        <h2 className="text-xl font-bold">Family Support</h2>
       </div>
       <nav className="py-4 flex-1">
         {items.map((item) => (
